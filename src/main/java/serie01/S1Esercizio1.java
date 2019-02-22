@@ -10,12 +10,18 @@ public class S1Esercizio1 {
 			this.name = name;
 		}
 
+		@Override
+		public String toString() {
+			return name;
+		}
+
 		public void run() {
-			System.out.println(name + ": " + getFibonacci());
+			System.out.println(this + ": " + getFibonacci());
 		}
 	}
 
 	static class MyThread extends Thread {
+		MyThread(String name) { super(name); }
 		@Override
 		public void run() {
 			System.out.println(this + ": " + getFibonacci());
@@ -28,13 +34,9 @@ public class S1Esercizio1 {
 
 	public static void main(String[] args) {
 		testAnonymous();
-
 		testMyThread();
-
 		testMyRunnable();
-
 		testLambda();
-
 	}
 
 	private static void testAnonymous() {
@@ -50,17 +52,17 @@ public class S1Esercizio1 {
 
 	private static void testLambda() {
 		System.out.println("*********** TEST LAMDA");
-		test((name) -> new Thread(() -> System.out.println(name + ": " + getFibonacci())));
+		test((name) -> new Thread(() -> System.out.println(name + ": " + getFibonacci()), name));
 	}
 
 	private static void testMyRunnable() {
 		System.out.println("*********** TEST RUNNABLE");
-		test((name) -> new Thread(new MyRunnable(name)));
+		test((name) -> new Thread(new MyRunnable(name), name));
 	}
 
 	private static void testMyThread() {
 		System.out.println("*********** TEST MY THREAD");
-		test((name) -> new MyThread());
+		test((name) -> new MyThread(name));
 	}
 
 
