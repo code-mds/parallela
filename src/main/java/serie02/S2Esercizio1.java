@@ -4,18 +4,87 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 class Autostrada {
 	public int entrate = 0;
 	public int uscite = 0;
 	public int pedaggi = 0;
+
+	public void incrEntrate(){ entrate++; }
+	public void incrUscite(){ uscite++; }
+	public void addPedaggio(int pedaggio) { pedaggi += pedaggio; }
+}
+
+
+class AutostradaSyncBlock extends Autostrada {
+	public void incrEntrate(){
+		synchronized (this) {
+			entrate++;
+		}
+	}
+	public void incrUscite(){
+		synchronized (this) {
+			uscite++;
+		}
+	}
+
+	public void addPedaggio(int pedaggio) {
+		synchronized (this) {
+			pedaggi += pedaggio;
+		}
+	}
+}
+
+class AutostradaSyncMethod extends Autostrada {
+	synchronized public void incrEntrate(){
+		entrate++;
+	}
+	synchronized public void incrUscite(){
+		uscite++;
+	}
+
+	synchronized public void addPedaggio(int pedaggio) {
+		pedaggi += pedaggio;
+	}
+}
+
+class AutostradaExplicit extends Autostrada {
+	Lock lock = new ReentrantLock();
+
+	public void incrEntrate(){
+		lock.lock();
+		try{
+			entrate++;
+		} finally {
+			lock.unlock();
+		}
+	}
+	synchronized public void incrUscite(){
+		lock.lock();
+		try{
+			uscite++;
+		} finally {
+			lock.unlock();
+		}
+	}
+
+	synchronized public void addPedaggio(int pedaggio) {
+		lock.lock();
+		try{
+			pedaggi += pedaggio;
+		} finally {
+			lock.unlock();
+		}
+	}
 }
 
 class Automobilista implements Runnable {
-	private final int id;
-	private final Autostrada autostrada;
+	protected final int id;
+	protected final Autostrada autostrada;
 	private final int delay;
-	private int pedaggiPagati = 0;
+	protected int pedaggiPagati = 0;
 
 	public Automobilista(int id, Autostrada state, int delay) {
 		this.autostrada = state;
@@ -40,19 +109,24 @@ class Automobilista implements Runnable {
 
 		for (int i = 0; i < 500; i++) {
 			vaiVersoAutostrada();
-			
-			autostrada.entrate++;
-			
+
+			//autostrada.entrate++;
+			autostrada.incrEntrate();
+
 			int pedaggioTratta = percorriAutostrada();
 			
-			autostrada.uscite++;
-			autostrada.pedaggi += pedaggioTratta;
+			//autostrada.uscite++;
+			autostrada.incrUscite();
+
+			//autostrada.pedaggi += pedaggioTratta;
+			autostrada.addPedaggio(pedaggioTratta);
+
 			pedaggiPagati += pedaggioTratta;
 		}
 		System.out.println("Automobilista " + id + ": terminato");
 	}
 
-	private void vaiVersoAutostrada() {
+	protected void vaiVersoAutostrada() {
 		try {
 			Thread.sleep(ThreadLocalRandom.current().nextLong(1, 5));
 		} catch (InterruptedException e) {
@@ -60,7 +134,7 @@ class Automobilista implements Runnable {
 		}
 	}
 
-	private int percorriAutostrada() {
+	protected int percorriAutostrada() {
 		try {
 			Thread.sleep(delay);
 		} catch (InterruptedException e) {
@@ -70,6 +144,8 @@ class Automobilista implements Runnable {
 	}
 }
 
+
+
 public class S2Esercizio1 {
 	public static void main(final String[] args) {
 		final Collection<Automobilista> workers = new ArrayList<Automobilista>();
@@ -77,12 +153,16 @@ public class S2Esercizio1 {
 		final Random rand = new Random();
 
 		// Crea l'oggetto condiviso
-		final Autostrada autostrada = new Autostrada();
+		//final Autostrada autostrada = new Autostrada();
+		//final Autostrada autostrada = new AutostradaSyncBlock();
+		//final Autostrada autostrada = new AutostradaSyncMethod();
+		final Autostrada autostrada = new AutostradaExplicit();
 
 		for (int i = 0; i < 10; i++) {
 			// Genera numero casuale tra 1 e 5 ms
 			final int delay = 1 + rand.nextInt(5);
 			// Crea nuovo automobilista con oggetto condiviso e delay
+			//final Automobilista a = new Automobilista(i, autostrada, delay);
 			final Automobilista a = new Automobilista(i, autostrada, delay);
 			workers.add(a);
 			// Aggiungi alla lista di threads un nuovo thread con il nuovo
