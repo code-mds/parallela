@@ -110,6 +110,16 @@ class Automobilista implements Runnable {
 		for (int i = 0; i < 500; i++) {
 			vaiVersoAutostrada();
 
+			/*
+			La modifica dei 3 membri dell'oggetto austrada avviene in modo concorrenziale.
+			Il valore dei 3 membri sono indipendenti l'uno dall'altro.
+			I 3 incrementi sono stati rifattorizzati come metodi della classe Austrada
+			AutostradaSyncBlock, AutostradaSyncMethod e AutostradaExplicit fannno override di questi 3 metodi
+			e proteggono la modifica dei valori in modo Thread Safe.
+			In questo esercizio non ci sono altri punti di accesso ai 3 membri da proteggere,
+			visto che la lettura finale avviene nel Main thread solo dopo che gli altri thread sono joinati.
+			 */
+
 			//autostrada.entrate++;
 			autostrada.incrEntrate();
 
@@ -153,6 +163,7 @@ public class S2Esercizio1 {
 		final Random rand = new Random();
 
 		// Crea l'oggetto condiviso
+
 		//final Autostrada autostrada = new Autostrada();
 		//final Autostrada autostrada = new AutostradaSyncBlock();
 		//final Autostrada autostrada = new AutostradaSyncMethod();
