@@ -1,14 +1,16 @@
 package serie02;
 
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 class ContoBancario {
     ContoBancario(int saldo) { this.saldo = saldo; }
 
     private int saldo;
-    public int getSaldo() { return saldo; }
+    int getSaldo() { return saldo; }
 
-    public void preleva(int richiesta) {
+    void preleva(int richiesta) {
         if(saldo < richiesta)
             throw new IllegalArgumentException("prelievo insufficiente");
 
@@ -17,6 +19,7 @@ class ContoBancario {
 }
 
 class UtenteBancario implements Runnable {
+    private static final Lock lock = new ReentrantLock();
     private int contante = 0;
     private final int id;
     private final int delay;
@@ -28,7 +31,7 @@ class UtenteBancario implements Runnable {
         this.delay = delay;
     }
 
-    public int getContante() {
+    int getContante() {
         return contante;
     }
 
@@ -36,22 +39,34 @@ class UtenteBancario implements Runnable {
     public void run() {
         try {
             while(true) {
+                boolean saldoInsufficiente = false;
                 int richiesta = ThreadLocalRandom.current().nextInt(5, 50);
-                int saldo = conto.getSaldo();
                 int prelievo = richiesta;
-                if (saldo - prelievo < 0) {
-                    prelievo = saldo;
-                    contante += prelievo;
+                int saldo;
+
+                lock.lock();
+                try {
+                    saldo = conto.getSaldo();
+                    if (saldo - prelievo < 0) {
+                        prelievo = saldo;
+                        saldoInsufficiente = true;
+                    }
+                    conto.preleva(prelievo);
+
+                } finally {
+                    lock.unlock();
+                }
+
+                contante += prelievo;
+                if(saldoInsufficiente) {
                     String msg = String.format("%s: sono riuscito a prelevare solo %d$ invece di %d$",
                             this, prelievo, richiesta);
                     System.out.println(msg);
                     break;
                 }
-                conto.preleva(prelievo);
-                contante += prelievo;
-                int nuovoSaldo = conto.getSaldo();
+
                 String msg = String.format("%s: prelevo %d$ dal conto contenente %d$. Nuovo saldo %d$",
-                        this, prelievo, saldo, nuovoSaldo);
+                        this, prelievo, saldo, saldo-prelievo);
                 System.out.println(msg);
 
                 Thread.sleep(delay);
@@ -68,11 +83,11 @@ class UtenteBancario implements Runnable {
 }
 
 public class S2Esercizio3 {
-    final static int NUM_UTENTI = 5;
+    private final static int NUM_UTENTI = 5;
+    private final static int SALDO_INIZIALE = 4000;
 
     public static void main(final String[] args) {
-        int saldoIniziale = 400;
-        ContoBancario conto = new ContoBancario(saldoIniziale);
+        ContoBancario conto = new ContoBancario(SALDO_INIZIALE);
         UtenteBancario[] utenti = new UtenteBancario[NUM_UTENTI];
         Thread[] threads = new Thread[NUM_UTENTI];
 
@@ -98,8 +113,8 @@ public class S2Esercizio3 {
         }
 
         System.out.println("*** Riepilogo Finale ***");
-        System.out.println("Saldo iniziale: " + saldoIniziale);
-        System.out.println("Saldo conto: " + conto.getSaldo());
-        System.out.println("Saldo utenti: " + saldoFinale);
+        System.out.println("Saldo conto iniziale: " + SALDO_INIZIALE + "$");
+        System.out.println("Saldo conto finale: " + conto.getSaldo() + "$");
+        System.out.println("Total saldo utenti: " + saldoFinale + "$");
     }
 }
