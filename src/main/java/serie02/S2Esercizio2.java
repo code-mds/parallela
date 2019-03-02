@@ -3,12 +3,101 @@ package serie02;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+class BagnoPubblicoExplicit extends BagnoPubblico {
+	Lock lock = new ReentrantLock();
+
+	public BagnoPubblicoExplicit(int numeroBagno) {
+		super(numeroBagno);
+	}
+
+	protected void libera() {
+		lock.lock();
+		try {
+			occupati--;
+		} finally {
+			lock.unlock();
+		}
+	}
+
+	protected boolean occupaSeLibero() {
+		lock.lock();
+		try {
+			// Verifica disponibilita bagni liberi!
+			if (occupati < disponibili) {
+				// Bagno libero! Occupa
+				occupati++;
+				totUtilizzi++;
+				return true;
+			}
+			// Tutti i bagni sono occupati!
+			totOccupati++;
+			return false;
+		} finally {
+			lock.unlock();
+		}
+	}
+}
+
+class BagnoPubblicoSyncBlock extends BagnoPubblico {
+
+	public BagnoPubblicoSyncBlock(int numeroBagno) {
+		super(numeroBagno);
+	}
+
+	protected void libera() {
+		synchronized (this) {
+			occupati--;
+		}
+	}
+
+	protected boolean occupaSeLibero() {
+		synchronized (this) {
+			// Verifica disponibilita bagni liberi!
+			if (occupati < disponibili) {
+				// Bagno libero! Occupa
+				occupati++;
+				totUtilizzi++;
+				return true;
+			}
+			// Tutti i bagni sono occupati!
+			totOccupati++;
+			return false;
+		}
+	}
+}
+
+class BagnoPubblicoSyncMethod extends BagnoPubblico {
+
+	public BagnoPubblicoSyncMethod(int numeroBagno) {
+		super(numeroBagno);
+	}
+
+	protected synchronized void libera() {
+		occupati--;
+	}
+
+	protected synchronized boolean occupaSeLibero() {
+		// Verifica disponibilita bagni liberi!
+		if (occupati < disponibili) {
+			// Bagno libero! Occupa
+			occupati++;
+			totUtilizzi++;
+			return true;
+		}
+		// Tutti i bagni sono occupati!
+		totOccupati++;
+		return false;
+	}
+}
 
 class BagnoPubblico {
-	private int totUtilizzi;
-	private int totOccupati;
-	private final int disponibili;
-	private int occupati;
+	protected int totUtilizzi;
+	protected int totOccupati;
+	protected final int disponibili;
+	protected int occupati;
 
 	public BagnoPubblico(int numeroBagno) {
 		this.disponibili = numeroBagno;
@@ -17,11 +106,11 @@ class BagnoPubblico {
 		this.totOccupati = 0;
 	}
 
-	private synchronized void libera() {
+	protected  void libera() {
 		occupati--;
 	}
 
-	private synchronized boolean occupaSeLibero() {
+	protected  boolean occupaSeLibero() {
 		// Verifica disponibilita bagni liberi!
 		if (occupati < disponibili) {
 			// Bagno libero! Occupa
@@ -120,11 +209,18 @@ class Utente implements Runnable {
 
 public class S2Esercizio2 {
 	public static void main(final String[] args) {
-		BagnoPubblico bp = new BagnoPubblico(2);
+		// Crea oggetto condiviso (BagnoPubblico)
+		// BagnoPubblico bp = new BagnoPubblico(2);
+		// BagnoPubblico bp = new BagnoPubblicoSyncMethod(2);
+		// BagnoPubblico bp = new BagnoPubblicoSyncBlock(2);
+		BagnoPubblico bp = new BagnoPubblicoExplicit(2);
+
 
 		List<Thread> allPersons = new ArrayList<>();
 		List<Utente> allUsers = new ArrayList<>();
 		for (int i = 1; i <= 10; i++) {
+			// create un oggetto Utente per ogni Thread
+			// l'oggettto Utente ha un rif. all'oggetto condiviso BagnoPubblico
 			final Utente user = new Utente(bp, i);
 			allUsers.add(user);
 			allPersons.add(new Thread(user));
