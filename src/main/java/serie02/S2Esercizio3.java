@@ -38,8 +38,8 @@ class UtenteBancario implements Runnable {
     @Override
     public void run() {
         try {
-            while(true) {
-                boolean saldoInsufficiente = false;
+            boolean saldoInsufficiente = false;
+            do {
                 int richiesta = ThreadLocalRandom.current().nextInt(5, 50);
                 int prelievo = richiesta;
                 int saldo;
@@ -62,15 +62,15 @@ class UtenteBancario implements Runnable {
                     String msg = String.format("%s: sono riuscito a prelevare solo %d$ invece di %d$",
                             this, prelievo, richiesta);
                     System.out.println(msg);
-                    break;
+                } else {
+                    String msg = String.format("%s: prelevo %d$ dal conto contenente %d$. Nuovo saldo %d$",
+                            this, prelievo, saldo, saldo-prelievo);
+                    System.out.println(msg);
+
+                    Thread.sleep(delay);
                 }
+            } while(!saldoInsufficiente);
 
-                String msg = String.format("%s: prelevo %d$ dal conto contenente %d$. Nuovo saldo %d$",
-                        this, prelievo, saldo, saldo-prelievo);
-                System.out.println(msg);
-
-                Thread.sleep(delay);
-            }
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
