@@ -17,15 +17,32 @@ class BagnoPubblico {
 		this.totOccupati = 0;
 	}
 
-	public boolean occupa() {
+	private synchronized void libera() {
+		occupati--;
+	}
+
+	private synchronized boolean occupaSeLibero() {
 		// Verifica disponibilita bagni liberi!
 		if (occupati < disponibili) {
 			// Bagno libero! Occupa
 			occupati++;
 			totUtilizzi++;
-		} else {
-			// Tutti i bagni sono occupati!
-			totOccupati++;
+			return true;
+		}
+		// Tutti i bagni sono occupati!
+		totOccupati++;
+		return false;
+	}
+
+	public boolean occupa() {
+		// Verifica disponibilita bagni liberi!
+//		if (occupati < disponibili) {
+//			// Bagno libero! Occupa
+//			occupati++;
+//			totUtilizzi++;
+//		} else
+
+		if(!occupaSeLibero())	{
 			return false;
 		}
 
@@ -33,7 +50,8 @@ class BagnoPubblico {
 		utilizzaBagno();
 
 		// Libera il bagno
-		occupati--;
+		//occupati--;
+		libera();
 		return true;
 	}
 
