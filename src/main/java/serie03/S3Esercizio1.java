@@ -3,10 +3,11 @@ package serie03;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicInteger;
 
 class Worker implements Runnable {
-	public static boolean isRunning = false;
-	public static int finished = 0;
+	public static volatile boolean isRunning = false;
+	public static AtomicInteger finished = new AtomicInteger(0);
 
 	private int count = 0;
 	private final int id;
@@ -35,7 +36,7 @@ class Worker implements Runnable {
 		}
 
 		System.out.println("Worker" + id + " finished");
-		finished++;
+		finished.incrementAndGet();
 	}
 
 	public void printResult() {
@@ -64,7 +65,7 @@ public class S3Esercizio1 {
 		System.out.println("Main thread starting the race!");
 		Worker.isRunning = true;
 
-		while (Worker.finished < allWorkers.size()) {
+		while (Worker.finished.get() < allWorkers.size()) {
 			// Wait
 		}
 
