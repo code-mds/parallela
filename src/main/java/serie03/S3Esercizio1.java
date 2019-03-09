@@ -7,18 +7,18 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 class Worker implements Runnable {
 	// fix visibility problem
-	// public static boolean isRunning = false;
-	public static volatile boolean isRunning = false;
+	//public static boolean isRunning = false;
+	static volatile boolean isRunning = false;
 
 	// fix visibility problem and race condition
-	// public static int finished = 0;
-	public static AtomicInteger finished = new AtomicInteger(0);
+	//public static int finished = 0;
+	static AtomicInteger finished = new AtomicInteger(0);
 
 	private int count = 0;
 	private final int id;
 	private final Random random;
 
-	public Worker(final int id) {
+	Worker(final int id) {
 		this.id = id;
 		this.random = new Random();
 	}
@@ -44,7 +44,7 @@ class Worker implements Runnable {
 		finished.incrementAndGet();
 	}
 
-	public void printResult() {
+	void printResult() {
 		System.out.println("Worker" + id + " reached " + count);
 	}
 }
