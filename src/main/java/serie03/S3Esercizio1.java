@@ -6,7 +6,12 @@ import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
 class Worker implements Runnable {
+	// fix visibility problem
+	// public static boolean isRunning = false;
 	public static volatile boolean isRunning = false;
+
+	// fix visibility problem and race condition
+	// public static int finished = 0;
 	public static AtomicInteger finished = new AtomicInteger(0);
 
 	private int count = 0;
