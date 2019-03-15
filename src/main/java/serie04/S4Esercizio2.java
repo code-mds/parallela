@@ -24,11 +24,23 @@ class Sensore implements Runnable {
 	}
 	
 	private boolean resetIfAbove() {
-		int currentAmount = S4Esercizio2.counter.get();
-		if (currentAmount < soglia)
-			return false;
-		S4Esercizio2.counter.set(0);
-		return true;
+
+		while(true) {
+			int currentAmount = S4Esercizio2.counter.get();
+			if(currentAmount < soglia) {
+				return false;
+			}
+			if(S4Esercizio2.counter.compareAndSet(currentAmount, 0)) {
+				return true;
+			}
+		}
+		//S4Esercizio2.counter.compareAndSet()
+
+//		int currentAmount = S4Esercizio2.counter.get();
+//		if (currentAmount < soglia)
+//			return false;
+//		S4Esercizio2.counter.set(0);
+//		return true;
 	}
 }
 
