@@ -34,7 +34,6 @@ class Sensore implements Runnable {
 				return true;
 			}
 		}
-		//S4Esercizio2.counter.compareAndSet()
 
 //		int currentAmount = S4Esercizio2.counter.get();
 //		if (currentAmount < soglia)
