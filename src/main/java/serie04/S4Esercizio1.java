@@ -126,21 +126,23 @@ class S4Es1Worker implements Runnable {
 public class S4Esercizio1 {
 	// Valore condiviso incapsulato e protetto dai metodi increment / getValue
 	private static long value = 0;
+
+	// Lock Espliciti
 	private final static Lock lock = new ReentrantLock();
+	// RW Lock
 	private final static ReentrantReadWriteLock rwlock = new ReentrantReadWriteLock();
 	private final static Lock readlock = rwlock.readLock();
 	private final static Lock writelock = rwlock.writeLock();
 
-
 	public static long increment() {
 		//return incrementExp();
-		//return incrementImplicit();
-		return incrementRWExp();
+		return incrementImplicit();
+		//return incrementRWExp();
 	}
 	public static long getValue() {
 		//return getValueExp();
-		// return getValueImplicit();
-		return getValueRWExp();
+		return getValueImplicit();
+		//return getValueRWExp();
 	}
 
 	private static long incrementRWExp() {
