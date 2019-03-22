@@ -40,8 +40,7 @@ class EventSource implements Runnable {
 	}
 
 	// Metodo synchronized per evitare accessi concorrenti alla map
-	public synchronized void registerListener(final int id,
-			final EventListener listener) {
+	public synchronized void registerListener(final int id, final EventListener listener) {
 		allListeners.put(id, listener);
 	}
 }
@@ -49,10 +48,14 @@ class EventSource implements Runnable {
 class EventListener {
 	private final int id;
 
-	public EventListener(final int id, final EventSource eventSource) {
+	public static EventListener build(final int id, final EventSource eventSource) {
+		EventListener listener = new  EventListener(id);
 		// Aggiunge listener alla eventSource per ricevere le notifiche
-		eventSource.registerListener(id, this);
+		eventSource.registerListener(id, listener);
+		return listener;
+	}
 
+	private EventListener(final int id) {
 		// Sleep che facilita l'apparizione del problema. In una situazione
 		// reale qui potrebbe fare altre inizializzazioni.
 		try {
@@ -68,8 +71,7 @@ class EventListener {
 		// Verifica semplicemente che l'id del listener chiamato dalla sorgente
 		// corrisponda con l'istanza del listener
 		if (listenerID != id)
-			System.out.println("Inconsistent listener ID" + listenerID + " : "
-					+ e);
+			System.out.println("Inconsistent listener ID" + listenerID + " : " + e);
 	}
 }
 
@@ -83,8 +85,9 @@ public class S5Esercizio2 {
 
 		// Crea e registra il listener alla sorgente
 		final List<EventListener> allListeners = new ArrayList<>();
-		for (int i = 1; i <= 20; i++)
-			allListeners.add(new EventListener(i, eventSource));
+		for (int i = 1; i <= 20; i++) {
+			allListeners.add(EventListener.build(i, eventSource));
+		}
 
 		// Attende che il Thread termini
 		try {
