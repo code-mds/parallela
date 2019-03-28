@@ -1,10 +1,51 @@
 package serie05;
 
+import java.util.concurrent.atomic.AtomicReference;
+
 interface IState {
 	void increment();
 
 	int getValue();
 }
+
+final class ImmutableValue {
+	private final int value;
+
+	ImmutableValue(int value) {
+		this.value = value;
+	}
+
+	int getValue() {
+		return value;
+	}
+
+	ImmutableValue increment() {
+		return new ImmutableValue(value+1);
+	}
+}
+
+final class ImmutableHolderSharedState implements IState {
+	private final AtomicReference<ImmutableValue> holderRef = new AtomicReference<>();
+
+	ImmutableHolderSharedState() {
+		holderRef.set(new ImmutableValue(0));
+	}
+
+	@Override
+	public void increment() {
+		while(true) {
+			ImmutableValue oldVal = holderRef.get();
+			if(holderRef.compareAndSet(oldVal, oldVal.increment()))
+				break;
+		}
+	}
+
+	@Override
+	public int getValue() {
+		return holderRef.get().getValue();
+	}
+}
+
 
 final class SharedState implements IState {
 	private int value = 0;
@@ -50,7 +91,7 @@ class Helper implements Runnable {
 
 		// Wait until value changes
 		while (true) {
-			final int curValue = S5Esercizio3.sharedState.getValue();
+			final int curValue = S5Esercizio3.getSharedValue();
 			if (lastValue != curValue) {
 				lastValue = curValue;
 				break;
@@ -59,7 +100,8 @@ class Helper implements Runnable {
 		System.out.println("Helper : value changed to " + lastValue + "!");
 
 		for (int i = 0; i < 5000; i++) {
-			S5Esercizio3.sharedState.increment();
+			S5Esercizio3.incrementSharedValue();
+
 			if ((i % 100) == 0)
 				try {
 					Thread.sleep(1);
@@ -83,7 +125,8 @@ class Starter implements Runnable {
 		System.out.println("Starter : initialized shared state");
 		// Choose which share to instantiate
 		if (S5Esercizio3.THREADSAFE_SHARE)
-			S5Esercizio3.sharedState = new ThreadSafeSharedState();
+//			S5Esercizio3.sharedState = new ThreadSafeSharedState();
+			S5Esercizio3.sharedState = new ImmutableHolderSharedState();
 		else
 			S5Esercizio3.sharedState = new SharedState();
 
@@ -96,7 +139,8 @@ class Starter implements Runnable {
 		// Perform 5000 increments and exit
 		System.out.println("Starter : begin incrementing");
 		for (int i = 0; i < 5000; i++) {
-			S5Esercizio3.sharedState.increment();
+			S5Esercizio3.incrementSharedValue();
+
 			if ((i % 100) == 0)
 				try {
 					Thread.sleep(1);
@@ -108,9 +152,10 @@ class Starter implements Runnable {
 }
 
 public class S5Esercizio3 {
-	public static final boolean THREADSAFE_SHARE = false;
+	static final boolean THREADSAFE_SHARE = true;
+	static final Object lockObject = new Object();
 
-	static IState sharedState = null;
+	volatile static IState sharedState = null;
 
 	public static void main(final String[] args) {
 		// Create Threads
@@ -129,5 +174,27 @@ public class S5Esercizio3 {
 
 		}
 		System.out.println("Main: final value " + S5Esercizio3.sharedState.getValue());
+	}
+
+	static void incrementSharedValue() {
+		if (THREADSAFE_SHARE)
+			sharedState.increment();
+		else {
+			synchronized (lockObject) {
+				sharedState.increment();
+			}
+		}
+	}
+
+	static int getSharedValue() {
+		int curValue;
+		if (S5Esercizio3.THREADSAFE_SHARE)
+			curValue = S5Esercizio3.sharedState.getValue();
+		else {
+			synchronized (S5Esercizio3.lockObject) {
+				curValue = S5Esercizio3.sharedState.getValue();
+			}
+		}
+		return curValue;
 	}
 }
