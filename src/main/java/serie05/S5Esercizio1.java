@@ -17,7 +17,6 @@ class Reader implements Runnable {
 	@Override
 	public void run() {
 		while (S5Esercizio1.isRunning.get()) {
-
 			// MANY Reader
 			int lastValue = S5Esercizio1.sharedValue;
 			// Update local value if needed
