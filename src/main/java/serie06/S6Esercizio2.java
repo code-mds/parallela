@@ -3,6 +3,7 @@ package serie06;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 class S6Es1Timer {
 	private long startTime = -1;
@@ -24,22 +25,30 @@ class S6Es1Timer {
 }
 
 class Bagno {
-	private boolean occupato = false;
+
+	private AtomicBoolean occupato = new AtomicBoolean(false);
+	//private boolean occupato = false;
 
 	// Ritorna false se gia occupato
 	public boolean provaOccupare() {
-		if (occupato)
-			return false;
-		this.occupato = true;
-		return true;
+		while(true) {
+			if (occupato.get())
+				return false;
+
+			if(occupato.compareAndSet(false, true))
+				return true;
+		}
 	}
 
 	public void libera() {
-		this.occupato = false;
+		this.occupato.set(false);
 	}
 }
 
 class S6ServiziPubblici {
+//	private final Object lockUomini = new Object();
+//	private final Object lockDonne = new Object();
+
 	private final Bagno bagniUomini[];
 	private final Bagno bagniDonne[];
 
@@ -53,27 +62,31 @@ class S6ServiziPubblici {
 			this.bagniDonne[i] = new Bagno();
 	}
 
-	public synchronized boolean occupaBagno(final boolean uomo) {
+	public boolean occupaBagno(final boolean uomo) {
 		Bagno bagnoOccupato = null;
 
 		if (uomo) {
-			// Cerca primo bagno libero per uomini
-			for (int i = 0; i < bagniUomini.length; i++) {
-				final Bagno bagno = bagniUomini[i];
-				if (bagno.provaOccupare()) {
-					bagnoOccupato = bagno;
-					break;
+			//synchronized (lockUomini) {
+				// Cerca primo bagno libero per uomini
+				for (int i = 0; i < bagniUomini.length; i++) {
+					final Bagno bagno = bagniUomini[i];
+					if (bagno.provaOccupare()) {
+						bagnoOccupato = bagno;
+						break;
+					}
 				}
-			}
+//			}
 		} else {
-			// Cerca primo bagno libero per donne
-			for (int i = 0; i < bagniDonne.length; i++) {
-				final Bagno bagno = bagniDonne[i];
-				if (bagno.provaOccupare()) {
-					bagnoOccupato = bagno;
-					break;
+//			synchronized (lockDonne) {
+				// Cerca primo bagno libero per donne
+				for (int i = 0; i < bagniDonne.length; i++) {
+					final Bagno bagno = bagniDonne[i];
+					if (bagno.provaOccupare()) {
+						bagnoOccupato = bagno;
+						break;
+					}
 				}
-			}
+//			}
 		}
 
 		// tutti i bagni sono occupati!
