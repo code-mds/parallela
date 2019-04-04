@@ -25,11 +25,20 @@ class S6Es1Timer {
 }
 
 class Bagno {
+	// VERSIONE CON MONITOR PATTERN
+//	private boolean occupato = false;
+//	public synchronized boolean provaOccupare() {
+//		if (occupato)
+//			return false;
+//		this.occupato = true;
+//		return true;
+//	}
+//	public synchronized void libera() {
+//		this.occupato = false;
+//	}
 
+	// VERSIONE CON ATOMIC
 	private AtomicBoolean occupato = new AtomicBoolean(false);
-	//private boolean occupato = false;
-
-	// Ritorna false se gia occupato
 	public boolean provaOccupare() {
 		while(true) {
 			if (occupato.get())
@@ -46,9 +55,6 @@ class Bagno {
 }
 
 class S6ServiziPubblici {
-//	private final Object lockUomini = new Object();
-//	private final Object lockDonne = new Object();
-
 	private final Bagno bagniUomini[];
 	private final Bagno bagniDonne[];
 
@@ -66,27 +72,23 @@ class S6ServiziPubblici {
 		Bagno bagnoOccupato = null;
 
 		if (uomo) {
-			//synchronized (lockUomini) {
-				// Cerca primo bagno libero per uomini
-				for (int i = 0; i < bagniUomini.length; i++) {
-					final Bagno bagno = bagniUomini[i];
-					if (bagno.provaOccupare()) {
-						bagnoOccupato = bagno;
-						break;
-					}
+			// Cerca primo bagno libero per uomini
+			for (int i = 0; i < bagniUomini.length; i++) {
+				final Bagno bagno = bagniUomini[i];
+				if (bagno.provaOccupare()) {
+					bagnoOccupato = bagno;
+					break;
 				}
-//			}
+			}
 		} else {
-//			synchronized (lockDonne) {
-				// Cerca primo bagno libero per donne
-				for (int i = 0; i < bagniDonne.length; i++) {
-					final Bagno bagno = bagniDonne[i];
-					if (bagno.provaOccupare()) {
-						bagnoOccupato = bagno;
-						break;
-					}
+			// Cerca primo bagno libero per donne
+			for (int i = 0; i < bagniDonne.length; i++) {
+				final Bagno bagno = bagniDonne[i];
+				if (bagno.provaOccupare()) {
+					bagnoOccupato = bagno;
+					break;
 				}
-//			}
+			}
 		}
 
 		// tutti i bagni sono occupati!
