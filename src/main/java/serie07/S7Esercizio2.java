@@ -1,9 +1,10 @@
 package serie07;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 class S7Es2Timer {
 	private long startTime = -1;
@@ -42,10 +43,18 @@ class ReadWorker implements Runnable {
 			final StringBuffer sb = new StringBuffer();
 
 			// Build phrase string from shares words
-			final Iterator<String> iterator = S7Esercizio2.sharedPhrase.iterator();
-			while (iterator.hasNext()) {
-				sb.append(iterator.next());
-				sb.append(" ");
+
+//			S7Esercizio2.readLock.lock();
+			try {
+//				synchronized (S7Esercizio2.sharedPhrase) {
+					final Iterator<String> iterator = S7Esercizio2.sharedPhrase.iterator();
+					while (iterator.hasNext()) {
+						sb.append(iterator.next());
+						sb.append(" ");
+					}
+//				}
+			} finally {
+//				S7Esercizio2.readLock.unlock();
 			}
 
 			// Compare strings: if shared pharse has changed update local
@@ -54,7 +63,7 @@ class ReadWorker implements Runnable {
 			if (!readString.equals(localReferencePhrase)) {
 				localReferencePhrase = readString;
 
-				System.out.println(this + " updating local string to " + localReferencePhrase);
+				//System.out.println(this + " updating local string to " + localReferencePhrase);
 				// Update counters
 				changesRecognized++;
 				totCompares += compareCounter;
@@ -81,8 +90,13 @@ class ReadWorker implements Runnable {
 }
 
 public class S7Esercizio2 {
-	final static String[] nouns = { "cat", "dog", "pig", "horse", "bird", "lion" };
-	final static Random random = new Random();
+	private final static ReadWriteLock rwLock = new ReentrantReadWriteLock();
+	private final static Lock writeLock = rwLock.writeLock();
+	final static Lock readLock = rwLock.readLock();
+
+
+	private final static String[] nouns = { "cat", "dog", "pig", "horse", "bird", "lion" };
+	private final static Random random = new Random();
 
 	private static String getWord() {
 		return nouns[random.nextInt(nouns.length)];
@@ -102,12 +116,14 @@ public class S7Esercizio2 {
 			list.add(getWord());
 
 		// Share list
-		S7Esercizio2.sharedPhrase = list;
+		//S7Esercizio2.sharedPhrase = Collections.synchronizedList(list);
+		S7Esercizio2.sharedPhrase = new CopyOnWriteArrayList<>(list);
 
 		// Create WordAdder and Reader threads
 		final List<ReadWorker> allWorkers = new ArrayList<>();
 		final List<Thread> allThreads = new ArrayList<>();
 		for (int i = 0; i < 15; i++) {
+			// ReadWorker: many reader
 			final ReadWorker worker = new ReadWorker(i);
 			allWorkers.add(worker);
 			allThreads.add(new Thread(worker));
@@ -120,7 +136,14 @@ public class S7Esercizio2 {
 			t.start();
 
 		for (int i = 0; i < 10; i++) {
-			S7Esercizio2.sharedPhrase.add(getWord());
+			// Main Thread: unique writer
+//			writeLock.lock();
+			try {
+				S7Esercizio2.sharedPhrase.add(getWord());
+			} finally {
+//				writeLock.unlock();
+			}
+
 			try {
 				Thread.sleep(1000);
 			} catch (final InterruptedException e) {
@@ -144,8 +167,10 @@ public class S7Esercizio2 {
 			final int changesRecognized = worker.getChangesRecognized();
 			final int totCompares = worker.getTotCompares();
 			final float comparesPerChange = (float) totCompares / (float) changesRecognized;
-			System.out.println(worker + " recognizedChanges:\t" + changesRecognized + "\ttotCompares:\t" + totCompares
-					+ "\tcompares. Avg compares per change\t" + comparesPerChange);
+			System.out.println(worker + "\t" + changesRecognized + "\t" + totCompares
+					+ "\t" + comparesPerChange);
+//			System.out.println(worker + " recognizedChanges:\t" + changesRecognized + "\ttotCompares:\t" + totCompares
+//					+ "\tcompares. Avg compares per change\t" + comparesPerChange);
 		}
 		System.out.println("Simulation took:\t" + timer.getElapsedTime() + "\tms");
 	}
