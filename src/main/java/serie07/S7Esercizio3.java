@@ -2,6 +2,8 @@ package serie07;
 
 import java.text.DateFormat;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 final class Lettera {
     private final DateFormat formatter = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.MEDIUM);
@@ -24,8 +26,7 @@ class Amico implements Runnable {
     private final static int TOTALE_LETTERE = 150;
     private final String nomePersonale;
     private final String nomeAmico;
-    private int lettereDisponibili = TOTALE_LETTERE;
-    private int lettereInviate = 0;
+    AtomicInteger lettereDisponibili = new AtomicInteger(TOTALE_LETTERE);
 
     Amico(String nomePersonale, String nomeAmico) {
         this.nomePersonale = nomePersonale;
@@ -39,10 +40,11 @@ class Amico implements Runnable {
         for (int i=0; i<lettereIniziali; i++)
             invia();
 
-        System.out.println("START ");
-        while (lettereDisponibili > 0 || S7Esercizio3.riceviLettera(nomePersonale) != null) {
-            //delay();
-            if (lettereDisponibili > 0)
+        while (!S7Esercizio3.completed) {
+            Lettera lettera = S7Esercizio3.riceviLettera(nomePersonale);
+            delay();
+
+            if (lettera != null && lettereDisponibili.get() > 0)
                 invia();
         }
     }
@@ -59,22 +61,23 @@ class Amico implements Runnable {
 
     private void invia() {
         S7Esercizio3.inviaLettera(nomePersonale, nomeAmico);
-        lettereInviate++;
-        lettereDisponibili--;
-        System.out.printf("%s -> %s [%d/%d] %d\n", nomePersonale, nomeAmico, lettereInviate, TOTALE_LETTERE, lettereDisponibili);
+        int inviate = TOTALE_LETTERE - lettereDisponibili.decrementAndGet();
+        System.out.printf("%s -> %s [%d/%d]\n", nomePersonale, nomeAmico, inviate, TOTALE_LETTERE);
     }
 }
 
 
 public class S7Esercizio3 {
-    private final static String amico1 = "Amico1";
-    private final static String amico2 = "Amico2";
-    final static List<Lettera> casella1 = new ArrayList<>();
-    final static List<Lettera> casella2 = new ArrayList<>();
+    private final static String AMICO_1 = "Amico1";
+    private final static String AMICO_2 = "Amico2";
+    volatile static boolean completed = false;
+
+    private final static List<Lettera> casella1 = new ArrayList<>();
+    private final static List<Lettera> casella2 = new ArrayList<>();
 
     static void inviaLettera(String mittente, String destinatario) {
         Lettera lettera = new Lettera(mittente, destinatario);
-        if (destinatario.equals(amico1)) {
+        if (destinatario.equals(AMICO_1)) {
             synchronized (casella1) {
                 casella1.add(lettera);
             }
@@ -86,61 +89,69 @@ public class S7Esercizio3 {
     }
 
     static Lettera riceviLettera(String destinatario) {
-        if (destinatario.equals(amico1)) {
+        Lettera lettera;
+        if (destinatario.equals(AMICO_1)) {
             synchronized (casella1) {
-                return getLettera(destinatario, casella1);
+                lettera = getLettera(destinatario, casella1);
             }
         } else {
             synchronized (casella2) {
-                return getLettera(destinatario, casella2);
+                lettera = getLettera(destinatario, casella2);
             }
         }
+        return lettera;
     }
 
     private static Lettera getLettera(String destinatario, List<Lettera> casella) {
         int size = casella.size();
-        //System.out.println(destinatario + " lettere:" + size);
         if (size > 0) {
-            Lettera l = casella.remove(0);
-            System.out.println("get " + l);
-            return l;
+            return casella.remove(0);
         }
-        System.out.println("RETURN NULL");
         return null;
     }
 
 
     public static void main(String[] args) {
+        Amico amico1 = new Amico(AMICO_1, AMICO_2);
+        Amico amico2 = new Amico(AMICO_2, AMICO_1);
+
         List<Thread> threads = new ArrayList<>();
-        threads.add(new Thread(new Amico(amico1, amico2)));
-        threads.add(new Thread(new Amico(amico2, amico1)));
+        threads.add(new Thread(amico1));
+        threads.add(new Thread(amico2));
 
         for (final Thread t : threads)
             t.start();
 
-        for (final Thread t : threads) {
+        while(!completed) {
             try {
-                t.join();
+                Thread.sleep(10);
             } catch (InterruptedException e) {
                 e.printStackTrace();
+            }
+
+            boolean isEmpty1;
+            boolean isEmpty2;
+            if( amico1.lettereDisponibili.get() == 0 &&
+                amico2.lettereDisponibili.get() == 0) {
+                synchronized (casella1) {
+                    isEmpty1 = casella1.isEmpty();
+                }
+                synchronized (casella2) {
+                    isEmpty2 = casella2.isEmpty();
+                }
+
+                if(isEmpty1 && isEmpty2)
+                    completed = true;
             }
         }
 
         System.out.println("Simulazione finita: " + new Date().toString());
 
-        printCasella1();
-        printCasella2();
-    }
-
-    static void printCasella2() {
-        System.out.println("casella2:");
-        for (Lettera l : casella2)
-            System.out.println(l);
-    }
-
-    static void printCasella1() {
         System.out.println("casella1:");
         for (Lettera l : casella1)
+            System.out.println(l);
+        System.out.println("casella2:");
+        for (Lettera l : casella2)
             System.out.println(l);
     }
 }
