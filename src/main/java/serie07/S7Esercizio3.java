@@ -3,7 +3,6 @@ package serie07;
 import java.text.DateFormat;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 final class Lettera {
     private final DateFormat formatter = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.MEDIUM);
@@ -66,43 +65,20 @@ class Amico implements Runnable {
     }
 }
 
+final class Casella {
+    private final String proprietario;
+    private final List<Lettera> casella = new ArrayList<>();
 
-public class S7Esercizio3 {
-    private final static String AMICO_1 = "Amico1";
-    private final static String AMICO_2 = "Amico2";
-    volatile static boolean completed = false;
+    Casella(String proprietario) {
+        this.proprietario = proprietario;
+    }
 
-    private final static List<Lettera> casella1 = new ArrayList<>();
-    private final static List<Lettera> casella2 = new ArrayList<>();
-
-    static void inviaLettera(String mittente, String destinatario) {
+    synchronized void add(String mittente, String destinatario) {
         Lettera lettera = new Lettera(mittente, destinatario);
-        if (destinatario.equals(AMICO_1)) {
-            synchronized (casella1) {
-                casella1.add(lettera);
-            }
-        } else {
-            synchronized (casella2) {
-                casella2.add(lettera);
-            }
-        }
+        casella.add(lettera);
     }
 
-    static Lettera riceviLettera(String destinatario) {
-        Lettera lettera;
-        if (destinatario.equals(AMICO_1)) {
-            synchronized (casella1) {
-                lettera = getLettera(destinatario, casella1);
-            }
-        } else {
-            synchronized (casella2) {
-                lettera = getLettera(destinatario, casella2);
-            }
-        }
-        return lettera;
-    }
-
-    private static Lettera getLettera(String destinatario, List<Lettera> casella) {
+    synchronized Lettera get() {
         int size = casella.size();
         if (size > 0) {
             return casella.remove(0);
@@ -110,6 +86,38 @@ public class S7Esercizio3 {
         return null;
     }
 
+    synchronized boolean isEmpty() {
+        return casella.isEmpty();
+    }
+
+    public String getProprietario() {
+        return proprietario;
+    }
+}
+
+public class S7Esercizio3 {
+    private final static String AMICO_1 = "Amico1";
+    private final static String AMICO_2 = "Amico2";
+    volatile static boolean completed = false;
+
+    private final static Casella casella1 = new Casella(AMICO_1);
+    private final static Casella casella2 = new Casella(AMICO_2);
+
+    static void inviaLettera(String mittente, String destinatario) {
+        if (destinatario.equals(casella1.getProprietario())) {
+            casella1.add(mittente, destinatario);
+        } else {
+            casella2.add(mittente, destinatario);
+        }
+    }
+
+    static Lettera riceviLettera(String destinatario) {
+        if (destinatario.equals(casella1.getProprietario())) {
+            return casella1.get();
+        } else {
+            return casella2.get();
+        }
+    }
 
     public static void main(String[] args) {
         Amico amico1 = new Amico(AMICO_1, AMICO_2);
@@ -129,29 +137,17 @@ public class S7Esercizio3 {
                 e.printStackTrace();
             }
 
-            boolean isEmpty1;
-            boolean isEmpty2;
             if( amico1.lettereDisponibili.get() == 0 &&
-                amico2.lettereDisponibili.get() == 0) {
-                synchronized (casella1) {
-                    isEmpty1 = casella1.isEmpty();
-                }
-                synchronized (casella2) {
-                    isEmpty2 = casella2.isEmpty();
-                }
-
-                if(isEmpty1 && isEmpty2)
+                amico2.lettereDisponibili.get() == 0 &&
+                casella1.isEmpty() &&
+                casella2.isEmpty()) {
                     completed = true;
             }
         }
 
         System.out.println("Simulazione finita: " + new Date().toString());
 
-        System.out.println("casella1:");
-        for (Lettera l : casella1)
-            System.out.println(l);
-        System.out.println("casella2:");
-        for (Lettera l : casella2)
-            System.out.println(l);
+        System.out.println("casella1 vuota: " + casella1.isEmpty());
+        System.out.println("casella2 vuota: " + casella2.isEmpty());
     }
 }
