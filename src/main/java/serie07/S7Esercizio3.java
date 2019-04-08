@@ -2,6 +2,7 @@ package serie07;
 
 import java.text.DateFormat;
 import java.util.*;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 final class Lettera {
@@ -65,30 +66,64 @@ class Amico implements Runnable {
     }
 }
 
-final class Casella {
-    private final String proprietario;
-    private final List<Lettera> casella = new ArrayList<>();
+interface Casella {
+    void add(String mittente, String destinatario);
+    Lettera get();
+    boolean isEmpty();
+    String getProprietario();
+}
 
-    Casella(String proprietario) {
+final class CasellaArrayList implements Casella {
+    private final String proprietario;
+    private final List<Lettera> lettere = new ArrayList<>();
+
+    CasellaArrayList(String proprietario) {
         this.proprietario = proprietario;
     }
 
-    synchronized void add(String mittente, String destinatario) {
+    public synchronized void add(String mittente, String destinatario) {
         Lettera lettera = new Lettera(mittente, destinatario);
-        casella.add(lettera);
+        lettere.add(lettera);
     }
 
-    synchronized Lettera get() {
-        int size = casella.size();
+    public synchronized Lettera get() {
+        int size = lettere.size();
         if (size > 0) {
-            return casella.remove(0);
+            return lettere.remove(0);
         }
         return null;
     }
 
-    synchronized boolean isEmpty() {
-        return casella.isEmpty();
+    public synchronized boolean isEmpty() {
+        return lettere.isEmpty();
     }
+
+    public String getProprietario() {
+        return proprietario;
+    }
+}
+
+final class CasellaConcurrentQueue implements Casella {
+    private final String proprietario;
+    private final ConcurrentLinkedQueue<Lettera> lettere  = new ConcurrentLinkedQueue<>();
+
+    CasellaConcurrentQueue(String proprietario) {
+        this.proprietario = proprietario;
+    }
+
+    public void add(String mittente, String destinatario) {
+        Lettera lettera = new Lettera(mittente, destinatario);
+        lettere.add(lettera);
+    }
+
+    public Lettera get() {
+        return lettere.poll();
+    }
+
+    public boolean isEmpty() {
+        return lettere.isEmpty();
+    }
+
 
     public String getProprietario() {
         return proprietario;
@@ -100,8 +135,8 @@ public class S7Esercizio3 {
     private final static String AMICO_2 = "Amico2";
     volatile static boolean completed = false;
 
-    private final static Casella casella1 = new Casella(AMICO_1);
-    private final static Casella casella2 = new Casella(AMICO_2);
+    private final static Casella casella1 = new CasellaConcurrentQueue(AMICO_1); //CasellaArrayList(AMICO_1);
+    private final static Casella casella2 = new CasellaConcurrentQueue(AMICO_2); //CasellaArrayList(AMICO_2);
 
     static void inviaLettera(String mittente, String destinatario) {
         if (destinatario.equals(casella1.getProprietario())) {
