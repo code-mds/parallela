@@ -7,11 +7,11 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+class AdderCondition implements Runnable {
 
-class AdderWaitNotify implements Runnable {
 	private final int idx;
 
-	AdderWaitNotify(int idx) {
+	AdderCondition(int idx) {
 		this.idx = idx;
 	}
 
@@ -19,37 +19,44 @@ class AdderWaitNotify implements Runnable {
 	public void run() {
 		System.out.println(idx + ") SOMMO RIGHE");
 		int sum = S8Esercizio1.sumRow(idx);
-		synchronized (S8Esercizio1.rowSum) {
+
+		S8Esercizio1.lock.lock();
+		try{
 			S8Esercizio1.rowsToSum--;
 			S8Esercizio1.rowSum[idx] = sum;
 			while (S8Esercizio1.rowsToSum > 0) {
 				try {
-					S8Esercizio1.rowSum.wait();
+					S8Esercizio1.rowsCondition.await();
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
 			}
-			S8Esercizio1.rowSum.notifyAll();
+			S8Esercizio1.rowsCondition.signalAll();
+		} finally {
+			S8Esercizio1.lock.unlock();
 		}
 
 		System.out.println(idx + ") SOMMO COLONNE");
 		sum = S8Esercizio1.sumColumn(idx);
-		synchronized (S8Esercizio1.colSum) {
+		S8Esercizio1.lock.lock();
+		try{
 			S8Esercizio1.colsToSum--;
 			S8Esercizio1.colSum[idx] = sum;
 			while (S8Esercizio1.colsToSum > 0) {
 				try {
-					S8Esercizio1.colSum.wait();
+					S8Esercizio1.colsCondition.await();
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
 			}
-			S8Esercizio1.colSum.notifyAll();
+			S8Esercizio1.colsCondition.signalAll();
+		} finally {
+			S8Esercizio1.lock.unlock();
 		}
 	}
 }
 
-public class S8Esercizio1 {
+public class S8Esercizio1Condition {
 	final static int[][] matrix = new int[10][10];
 	final static int[] rowSum = new int[matrix.length];
 	final static int[] colSum = new int[matrix[0].length];
@@ -71,18 +78,22 @@ public class S8Esercizio1 {
 
 		List<Thread> threads = new ArrayList<>();
 		for (int i=0;i<matrix.length; i++) {
-			threads.add(new Thread(new AdderWaitNotify(i)));
+			threads.add(new Thread(new AdderCondition(i)));
 		}
+
 		threads.forEach(Thread::start);
 
-		synchronized (rowSum){
+		S8Esercizio1.lock.lock();
+		try{
 			while (rowsToSum > 0) {
 				try {
-					rowSum.wait();
+					rowsCondition.await();
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
 			}
+		} finally {
+			S8Esercizio1.lock.unlock();
 		}
 
 		// Stampa somma delle righe
@@ -90,14 +101,17 @@ public class S8Esercizio1 {
 		printArray(rowSum);
 		stampaTotaleRighe();
 
-		synchronized (colSum){
+		S8Esercizio1.lock.lock();
+		try{
 			while (colsToSum > 0) {
 				try {
-					colSum.wait();
+					colsCondition.await();
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
 			}
+		} finally {
+			S8Esercizio1.lock.unlock();
 		}
 
 		// Stampa somma delle colonne
