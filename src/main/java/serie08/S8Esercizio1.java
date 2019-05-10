@@ -56,11 +56,6 @@ public class S8Esercizio1 {
 	static int rowsToSum = rowSum.length;
 	static int colsToSum = colSum.length;
 
-	final static Lock lock = new ReentrantLock();
-	final static Condition rowsCondition = lock.newCondition();
-	final static Condition colsCondition = lock.newCondition();
-
-
 	public static void main(String[] args) {
 		// Inizializza matrice con valori random
 		initMatrix();

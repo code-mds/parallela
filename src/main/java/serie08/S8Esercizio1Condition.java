@@ -18,40 +18,40 @@ class AdderCondition implements Runnable {
 	@Override
 	public void run() {
 		System.out.println(idx + ") SOMMO RIGHE");
-		int sum = S8Esercizio1.sumRow(idx);
+		int sum = S8Esercizio1Condition.sumRow(idx);
 
-		S8Esercizio1.lock.lock();
+		S8Esercizio1Condition.lock.lock();
 		try{
-			S8Esercizio1.rowsToSum--;
-			S8Esercizio1.rowSum[idx] = sum;
-			while (S8Esercizio1.rowsToSum > 0) {
+			S8Esercizio1Condition.rowsToSum--;
+			S8Esercizio1Condition.rowSum[idx] = sum;
+			while (S8Esercizio1Condition.rowsToSum > 0) {
 				try {
-					S8Esercizio1.rowsCondition.await();
+					S8Esercizio1Condition.rowsCondition.await();
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
 			}
-			S8Esercizio1.rowsCondition.signalAll();
+			S8Esercizio1Condition.rowsCondition.signalAll();
 		} finally {
-			S8Esercizio1.lock.unlock();
+			S8Esercizio1Condition.lock.unlock();
 		}
 
 		System.out.println(idx + ") SOMMO COLONNE");
-		sum = S8Esercizio1.sumColumn(idx);
-		S8Esercizio1.lock.lock();
+		sum = S8Esercizio1Condition.sumColumn(idx);
+		S8Esercizio1Condition.lock.lock();
 		try{
-			S8Esercizio1.colsToSum--;
-			S8Esercizio1.colSum[idx] = sum;
-			while (S8Esercizio1.colsToSum > 0) {
+			S8Esercizio1Condition.colsToSum--;
+			S8Esercizio1Condition.colSum[idx] = sum;
+			while (S8Esercizio1Condition.colsToSum > 0) {
 				try {
-					S8Esercizio1.colsCondition.await();
+					S8Esercizio1Condition.colsCondition.await();
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
 			}
-			S8Esercizio1.colsCondition.signalAll();
+			S8Esercizio1Condition.colsCondition.signalAll();
 		} finally {
-			S8Esercizio1.lock.unlock();
+			S8Esercizio1Condition.lock.unlock();
 		}
 	}
 }
@@ -83,7 +83,7 @@ public class S8Esercizio1Condition {
 
 		threads.forEach(Thread::start);
 
-		S8Esercizio1.lock.lock();
+		S8Esercizio1Condition.lock.lock();
 		try{
 			while (rowsToSum > 0) {
 				try {
@@ -93,7 +93,7 @@ public class S8Esercizio1Condition {
 				}
 			}
 		} finally {
-			S8Esercizio1.lock.unlock();
+			S8Esercizio1Condition.lock.unlock();
 		}
 
 		// Stampa somma delle righe
@@ -101,7 +101,7 @@ public class S8Esercizio1Condition {
 		printArray(rowSum);
 		stampaTotaleRighe();
 
-		S8Esercizio1.lock.lock();
+		S8Esercizio1Condition.lock.lock();
 		try{
 			while (colsToSum > 0) {
 				try {
@@ -111,7 +111,7 @@ public class S8Esercizio1Condition {
 				}
 			}
 		} finally {
-			S8Esercizio1.lock.unlock();
+			S8Esercizio1Condition.lock.unlock();
 		}
 
 		// Stampa somma delle colonne
