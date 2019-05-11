@@ -1,6 +1,7 @@
 package serie08;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.Phaser;
 import java.util.concurrent.ThreadLocalRandom;
@@ -10,13 +11,16 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class S8Esercizio3 {
     static final Phaser phaser = new Phaser(1);
+    static final int NR_MEMBRI = 10;
+    static final int NR_SQUADRE = 4;
+
     public static void main(final String[] args) {
         List<Squadra> squadre = new ArrayList<>();
         List<Thread> threads = new ArrayList<>();
 
-        for(int idxSquadra=0;idxSquadra<4;idxSquadra++) {
+        for(int idxSquadra=0;idxSquadra<NR_SQUADRE;idxSquadra++) {
             Squadra squadra = new Squadra(idxSquadra);
-            for (int idxMembro=0;idxMembro<2;idxMembro++) {
+            for (int idxMembro=0;idxMembro<NR_MEMBRI;idxMembro++) {
                 Corridore corridore = new Corridore(squadra, idxMembro);
                 squadra.add(corridore);
                 threads.add(new Thread(corridore));
@@ -31,11 +35,9 @@ public class S8Esercizio3 {
         phaser.arriveAndAwaitAdvance();
         System.out.println("---------------------------");
         System.out.println("Classifica finale:");
-        for(int i = 0; i<4; i++) {
-            int tempoSquadra = squadre.get(i).getTempoTotale();
-            System.out.printf("Squadra%d elapsedTime: %d ms\n", i, tempoSquadra);
-        }
 
+        squadre.sort(Comparator.comparingInt(Squadra::getTempoTotale));
+        squadre.forEach(Squadra::stampaTempo);
     }
 
     private static class Squadra {
@@ -51,14 +53,16 @@ public class S8Esercizio3 {
             this.idxTestimone = 0;
         }
 
-        public void passaTestimone(Corridore c) {
+        public void passaTestimone() {
             lock.lock();
             try{
-                System.out.printf("%s: passo testimone!\n", c);
+                if(idxTestimone < squadra.size() -1)
+                    System.out.printf("%s: passo testimone t%d a %s\n",
+                        squadra.get(idxTestimone), idxTestimone, squadra.get(idxTestimone+1));
+
                 idxTestimone++;
                 readyToStart.signalAll();
-            } catch(Exception e) {
-                e.printStackTrace();
+            } finally {
                 lock.unlock();
             }
         }
@@ -73,8 +77,7 @@ public class S8Esercizio3 {
                         e.printStackTrace();
                     }
                 }
-            } catch(Exception e) {
-                e.printStackTrace();
+            } finally {
                 lock.unlock();
             }
         }
@@ -91,6 +94,9 @@ public class S8Esercizio3 {
             return squadra.stream().mapToInt(Corridore::getTempoCorsa).sum();
         }
 
+        public void stampaTempo() {
+            System.out.printf("Squadra%d elapsedTime: %d ms\n", idxSquadra, getTempoTotale());
+        }
     }
 
     private static class Corridore implements Runnable {
@@ -107,20 +113,26 @@ public class S8Esercizio3 {
 
         @Override
         public void run() {
+            stampaAttesa();
+            phaser.arriveAndAwaitAdvance();
+            squadra.syncStart(idxMembro);
+
+            if(idxMembro > 0)
+                System.out.printf("%s: testimone ricevuto\n", this);
+
+            corri();
+            squadra.passaTestimone();
+
+            phaser.arriveAndDeregister();
+        }
+
+        private void stampaAttesa() {
             if(idxMembro == 0) {
                 System.out.printf("%s: in attesa del segnale di partenza!\n", this);
             }
             else {
                 System.out.printf("%s: in attesa del testimone!\n", this);
             }
-            phaser.arriveAndAwaitAdvance();
-
-            squadra.syncStart(idxMembro);
-
-            corri();
-            squadra.passaTestimone(this);
-            System.out.println(this + " arrivato");
-            phaser.arriveAndDeregister();
         }
 
         private void corri() {
