@@ -2,11 +2,11 @@ package serie09;
 
 import java.util.concurrent.CountDownLatch;
 
-public class S9Esercizio1 extends Thread {
-	static final CountDownLatch cdl = new CountDownLatch(2);
-	static volatile boolean finished = false;
-	static volatile int sum = 0;
-	static volatile int cnt = 0;
+public class S9Esercizio1Priority extends Thread {
+	private static final CountDownLatch cdl = new CountDownLatch(2);
+	private static volatile boolean finished = false;
+	private static volatile int sum = 0;
+	private static volatile int cnt = 0;
 
 	public static void main(final String[] args) {
 		final Thread thread1 = new Thread(() -> {
@@ -17,9 +17,9 @@ public class S9Esercizio1 extends Thread {
 				e.printStackTrace();
 			}
 			int count = 0;
-			while (!S9Esercizio1.finished) {
-				S9Esercizio1.cnt = ++count;
-				System.out.println("sum " + S9Esercizio1.sum);
+			while (!S9Esercizio1Priority.finished) {
+				S9Esercizio1Priority.cnt = ++count;
+				System.out.println("sum " + S9Esercizio1Priority.sum);
 			}
 		});
 
@@ -31,11 +31,14 @@ public class S9Esercizio1 extends Thread {
 				e.printStackTrace();
 			}
 			for (int i = 1; i <= 50000; i++) {
-				S9Esercizio1.sum = i;
+				S9Esercizio1Priority.sum = i;
 			}
-			S9Esercizio1.finished = true;
-			System.out.println("cnt " + S9Esercizio1.cnt);
+			S9Esercizio1Priority.finished = true;
+			System.out.println("cnt " + S9Esercizio1Priority.cnt);
 		});
+
+		thread1.setPriority(Thread.MAX_PRIORITY);
+		thread2.setPriority(Thread.MIN_PRIORITY);
 
 		thread1.start();
 		thread2.start();
