@@ -37,7 +37,11 @@ public class S9Esercizio1Priority extends Thread {
 			System.out.println("cnt " + S9Esercizio1Priority.cnt);
 		});
 
+		// Per il thread1 definisco la piu' alta priorita'
+		// per permetterne una piu' frequente esecuzione
 		thread1.setPriority(Thread.MAX_PRIORITY);
+
+		// Per il thread1 definisco la piu' bassa priorita'
 		thread2.setPriority(Thread.MIN_PRIORITY);
 
 		thread1.start();
