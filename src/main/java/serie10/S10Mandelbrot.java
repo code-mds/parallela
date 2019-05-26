@@ -8,6 +8,8 @@ import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -155,7 +157,10 @@ public class S10Mandelbrot extends JPanel {
 	private static final long serialVersionUID = -765326845524613343L;
 
 	// the threads that compute the image
-	private Thread[] workers;
+	private ExecutorService executorService;
+	private Runnable[] workers;
+	//private Thread[] workers;
+
 
 	// used to signal the thread to abort
 	volatile boolean running;
@@ -228,7 +233,8 @@ public class S10Mandelbrot extends JPanel {
 		threadCountSelect.setEnabled(false);
 
 		final int threadCount = ((Integer) threadCountSelect.getSelectedItem()).intValue();
-		workers = new Thread[threadCount];
+		workers = new Runnable[threadCount];
+		executorService = Executors.newFixedThreadPool(threadCount);
 
 		// How many rows of pixels should each thread compute?
 		int rowsPerThread;
@@ -253,29 +259,30 @@ public class S10Mandelbrot extends JPanel {
 			else
 				endRow = rowsPerThread * (i + 1) - 1;
 			final String threadName = "WorkerThread " + (i + 1) + "/" + threadCount;
-			workers[i] = new Thread(threadName) {
-				@Override
-				public void run() {
-					try {
-						// Compute one row of pixels.
-						for (int row = startRow; row <= endRow; row++) {
-							final int[] rgbRow = fractal.computeRow(row);
-							// Check for the signal to abort the computation.
-							if (!running)
-								return;
-							imagePanel.setRowAndUpdate(rgbRow, row);
-						}
-					} finally {
-						// make sure this is called when the thread finishes for
-						// any reason.
-						threadFinished();
+
+			workers[i] = () -> {
+				try {
+					System.out.println(threadName);
+					// Compute one row of pixels.
+					for (int row = startRow; row <= endRow; row++) {
+						final int[] rgbRow = fractal.computeRow(row);
+						// Check for the signal to abort the computation.
+						if (!running)
+							return;
+						imagePanel.setRowAndUpdate(rgbRow, row);
 					}
+				} finally {
+					// make sure this is called when the thread finishes for
+					// any reason.
+					threadFinished();
 				}
 			};
 		}
 
 		for (int i = 0; i < threadCount; i++)
-			workers[i].start();
+			executorService.submit(workers[i]);
+			//workers[i].start();
+		executorService.shutdown();
 
 	}
 
