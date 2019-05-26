@@ -1,35 +1,45 @@
 package serie10;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.*;
 
-public class S10Esercizio1 {
+public class S10Esercizio2 {
 	public static final int NUM_OPERATIONS = 100_000;
 	public static final int MATRIX_SIZE = 64;
 
 	public static void main(final String[] args) {
 		ExecutorService executorService = Executors.newFixedThreadPool(10);
 
-		System.out.println("Simulazione iniziata E1");
+		final List<Future<Integer>> futures = new ArrayList<>();
+
+		System.out.println("Simulazione iniziata E2");
 		for (int operation = 0; operation < NUM_OPERATIONS; operation++) {
-			executorService.execute(new MatrixProduct());
+			futures.add(executorService.submit(new MatrixProduct()));
 		}
 		executorService.shutdown();
 
-        try {
-	    	// Wait until all tasks have completed
-    		while (!executorService.isTerminated()) {
-                Thread.sleep(10);
-            }
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+		//int idx = 0;
+		int max = 0;
+		for (final Future<Integer> future : futures) {
+			try {
+				final Integer result = future.get();
+				//System.out.println("Somma_" + idx++ + " = " + result);
+
+				max = Math.max(max, result);
+			} catch (InterruptedException | ExecutionException e) {
+				e.printStackTrace();
+			}
+		}
+
+		System.out.println("Somma piu' grande: " + max);
 
 		System.out.println("Simulazione terminata");
 	}
 
-	final static class MatrixProduct implements Runnable {
+	final static class MatrixProduct implements Callable<Integer> {
 		@Override
-		public void run() {
+		public Integer call() {
 			ThreadLocalRandom rand = ThreadLocalRandom.current();
 			// Crea matrici
 			final int[][] m0 = new int[MATRIX_SIZE][MATRIX_SIZE];
@@ -43,12 +53,17 @@ public class S10Esercizio1 {
 					m1[i][j] = rand.nextInt(10);
 				}
 
+			int sum = 0;
+
 			// Moltiplica matrici
 			for (int i = 0; i < m0[0].length; i++)
 				for (int j = 0; j < m1.length; j++)
 					for (int k = 0; k < m0.length; k++) {
 						result[i][j] += m0[i][k] * m1[k][j];
+						sum += result[i][j];
 					}
+
+			return sum;
 		}
 	}
 
