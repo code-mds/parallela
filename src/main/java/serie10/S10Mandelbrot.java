@@ -11,6 +11,7 @@ import java.awt.image.BufferedImage;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import javax.sound.midi.Soundbank;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -177,11 +178,11 @@ public class S10Mandelbrot extends JPanel {
 	final ImagePanel imagePanel;
 
 	final Mandelbrot fractal;
+	final Timer timer = new Timer();
 
 	/**
 	 */
 	public S10Mandelbrot() {
-
 		setBorder(BorderFactory.createLineBorder(Color.BLACK, 1));
 		setLayout(new BorderLayout());
 
@@ -217,6 +218,8 @@ public class S10Mandelbrot extends JPanel {
 		fractal = new Mandelbrot(width, height);
 	}
 
+
+
 	/**
 	 * This method is called when the user clicks the Start button, while no
 	 * computation is in progress. It starts as many new threads as the user has
@@ -225,6 +228,8 @@ public class S10Mandelbrot extends JPanel {
 	 * keep the GUI responsive.
 	 */
 	void start() {
+		timer.start();
+
 		// change name while computation is in progress
 		startButton.setText("Abort");
 		imagePanel.resetImage();
@@ -232,7 +237,7 @@ public class S10Mandelbrot extends JPanel {
 		// will be re-enabled when all threads finish
 		threadCountSelect.setEnabled(false);
 
-		final int threadCount = ((Integer) threadCountSelect.getSelectedItem()).intValue();
+		final int threadCount = getThreadCount();
 		workers = new Runnable[threadCount];
 		executorService = Executors.newFixedThreadPool(threadCount);
 
@@ -286,6 +291,10 @@ public class S10Mandelbrot extends JPanel {
 
 	}
 
+	private int getThreadCount() {
+		return ((Integer) threadCountSelect.getSelectedItem()).intValue();
+	}
+
 	/**
 	 * Called when the user clicks the button while a thread is running. A signal is
 	 * sent to the thread to terminate, by setting the value of the signaling
@@ -312,6 +321,9 @@ public class S10Mandelbrot extends JPanel {
 			workers = null;
 			threadCountSelect.setEnabled(true); // re-enable pop-up menu
 			imagePanel.repaint();
+
+			timer.stop();
+			System.out.println("#thread=" + getThreadCount() + " time=" + timer.getElapsed());
 		}
 	}
 
@@ -329,4 +341,25 @@ public class S10Mandelbrot extends JPanel {
 		window.setLocation((screenSize.width - window.getWidth()) / 2, (screenSize.height - window.getHeight()) / 2);
 		window.setVisible(true);
 	}
+
+	static class Timer {
+		private long start = -1;
+		private long stop = -1;
+
+		public void start() {
+			start = System.nanoTime();
+		}
+
+		public void stop() {
+			stop = System.nanoTime();
+		}
+
+		public long getElapsed() {
+			if(start < 0 || stop < 0)
+				return 0;
+
+			return stop - start;
+		}
+	}
+
 }
