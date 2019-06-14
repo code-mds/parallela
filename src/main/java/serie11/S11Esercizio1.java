@@ -11,6 +11,7 @@ import java.io.Reader;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
+import java.text.CollationElementIterator;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -198,6 +199,10 @@ public class S11Esercizio1 {
 		findFarest(supsi, quakes);
 		findStrongest(quakes);
 		findTopTenFromSupsi(supsi, quakes);
+		findLatitude46(quakes);
+		findLongitude8(quakes);
+		groupByDepth(quakes);
+		groupByMagnitude(quakes);
 
 		final long totalEndTime = System.currentTimeMillis();
 		System.out.println("Completed in " + ((totalEndTime - startTime)) + " ms");
@@ -242,7 +247,7 @@ public class S11Esercizio1 {
 	// computation time=12 ms (Stream)
 	private static void findStrongest(List<Earthquake> quakes) {
 		final long computeTime = System.currentTimeMillis();
-		System.out.println("Searching for farest earthquake ...");
+		System.out.println("Searching for strongest earthquake ...");
 
 		Earthquake result = quakes
 				.parallelStream()
@@ -253,9 +258,11 @@ public class S11Esercizio1 {
 		System.out.println("Strongest  : " + result + " (computation time=" + (endTime - computeTime) + " ms)");
 	}
 
+	//  computation time=505 ms (Stream)
+	//  computation time=269 ms (ParallelStream)
 	private static void findTopTenFromSupsi(Coordinate supsi, List<Earthquake> quakes) {
 		final long computeTime = System.currentTimeMillis();
-		System.out.println("Searching for farest earthquake ...");
+		System.out.println("Searching top ten...");
 
 		List<Earthquake> topTen = quakes
 				.parallelStream()
@@ -270,9 +277,78 @@ public class S11Esercizio1 {
 			System.out.println(i + ") " + topTen.get(i) + " distance: " + topTen.get(i).getPosition().distance(supsi));
 		}
 
-		//  computation time=505 ms (Stream)
-		//  computation time=269 ms (ParallelStream)
 		System.out.println(" (computation time=" + (endTime - computeTime) + " ms)");
 	}
 
+	// computation time=13 ms (Parallel Stream)
+	// computation time=15 ms (Stream)
+	private static void findLatitude46(List<Earthquake> quakes) {
+		final long computeTime = System.currentTimeMillis();
+		System.out.println("Searching for latitude 6 ...");
+
+		long result = quakes
+				.parallelStream()
+				//.stream()
+				.filter(q -> q.getPosition().getLat() < 47.0 && q.getPosition().getLat() >= 46.0)
+				.count();
+
+		final long endTime = System.currentTimeMillis();
+		System.out.println("Number of earthquake  with latitude 46: " + result + " (computation time=" + (endTime - computeTime) + " ms)");
+	}
+
+	// computation time=10 ms (Parallel Stream)
+	// computation time=15 ms (Stream)
+	private static void findLongitude8(List<Earthquake> quakes) {
+		final long computeTime = System.currentTimeMillis();
+		System.out.println("Searching for longitude 8...");
+
+		long result = quakes
+				.parallelStream()
+				//.stream()
+				.filter(q -> q.getPosition().getLon() < 9.0 && q.getPosition().getLon() >= 8.0)
+				.count();
+
+		final long endTime = System.currentTimeMillis();
+		System.out.println("Number of earthquake  with longitude 8: " + result + " (computation time=" + (endTime - computeTime) + " ms)");
+	}
+
+	// computation time=30 ms (Parallel Stream)
+	// computation time=37 ms (Stream)
+	private static void groupByDepth(List<Earthquake> quakes) {
+		final long computeTime = System.currentTimeMillis();
+		System.out.println("grouping by depth...");
+
+		Map<Integer, List<Earthquake>> result = quakes
+				//.parallelStream()
+				.stream()
+				.collect(Collectors.groupingBy(q -> (int)(q.getDepth() / 100)));
+
+		final long endTime = System.currentTimeMillis();
+
+		for (Integer range : result.keySet()) {
+			System.out.println("[" + (range*100) + ", " +  (range*100+100) + ") -> " + result.get(range).size());
+		}
+
+		System.out.println(" (computation time=" + (endTime - computeTime) + " ms)");
+	}
+
+	// computation time=30 ms (Parallel Stream)
+	// computation time=56 ms (Stream)
+	private static void groupByMagnitude(List<Earthquake> quakes) {
+		final long computeTime = System.currentTimeMillis();
+		System.out.println("grouping by magnitude...");
+
+		Map<Integer, List<Earthquake>> result = quakes
+				//.parallelStream()
+				.stream()
+				.collect(Collectors.groupingBy(q -> (int)q.getMagnitude()));
+
+		final long endTime = System.currentTimeMillis();
+
+		for (Integer range : result.keySet()) {
+			System.out.println("[" + (range) + ", " +  (range+1) + ") -> " + result.get(range).size());
+		}
+
+		System.out.println(" (computation time=" + (endTime - computeTime) + " ms)");
+	}
 }
