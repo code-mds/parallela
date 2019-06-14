@@ -9,9 +9,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.net.MalformedURLException;
-import java.net.URI;
 import java.net.URL;
-import java.text.CollationElementIterator;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -129,7 +127,7 @@ class Earthquake {
 public class S11Esercizio1 {
 
 	private static List<Earthquake> loadEarthquakeDB(final String address, final boolean isLocalFile) {
-		final List<Earthquake> quakes = new ArrayList<Earthquake>();
+		final List<Earthquake> quakes = new ArrayList<>();
 
 		final Reader reader;
 		if (isLocalFile) {
@@ -312,15 +310,15 @@ public class S11Esercizio1 {
 		System.out.println("Number of earthquake  with longitude 8: " + result + " (computation time=" + (endTime - computeTime) + " ms)");
 	}
 
-	// computation time=30 ms (Parallel Stream)
+	// computation time=35 ms (Parallel Stream)
 	// computation time=37 ms (Stream)
 	private static void groupByDepth(List<Earthquake> quakes) {
 		final long computeTime = System.currentTimeMillis();
 		System.out.println("grouping by depth...");
 
 		Map<Integer, List<Earthquake>> result = quakes
-				//.parallelStream()
-				.stream()
+				.parallelStream()
+				//.stream()
 				.collect(Collectors.groupingBy(q -> (int)(q.getDepth() / 100)));
 
 		final long endTime = System.currentTimeMillis();
@@ -332,21 +330,22 @@ public class S11Esercizio1 {
 		System.out.println(" (computation time=" + (endTime - computeTime) + " ms)");
 	}
 
-	// computation time=30 ms (Parallel Stream)
+	// computation time=78 ms (Parallel Stream)
 	// computation time=56 ms (Stream)
 	private static void groupByMagnitude(List<Earthquake> quakes) {
 		final long computeTime = System.currentTimeMillis();
 		System.out.println("grouping by magnitude...");
 
-		Map<Integer, List<Earthquake>> result = quakes
-				//.parallelStream()
-				.stream()
-				.collect(Collectors.groupingBy(q -> (int)q.getMagnitude()));
+		Map<Integer, Long> result = quakes
+				.parallelStream()
+				.collect(Collectors.groupingByConcurrent(q -> (int)q.getMagnitude(), Collectors.counting()));
+//				.stream()
+//				.collect(Collectors.groupingBy(q -> (int)q.getMagnitude(), Collectors.counting()));
 
 		final long endTime = System.currentTimeMillis();
 
 		for (Integer range : result.keySet()) {
-			System.out.println("[" + (range) + ", " +  (range+1) + ") -> " + result.get(range).size());
+			System.out.println("[" + (range) + ", " +  (range+1) + ") -> " + result.get(range));
 		}
 
 		System.out.println(" (computation time=" + (endTime - computeTime) + " ms)");
