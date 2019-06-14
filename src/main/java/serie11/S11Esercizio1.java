@@ -15,6 +15,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 final class Coordinate {
 	private final double lat;
@@ -125,8 +126,38 @@ class Earthquake {
 }
 
 public class S11Esercizio1 {
+	public static void main(final String[] args) {
+		final String URI = S11Esercizio1.class.getResource("/2014-2015.csv").toString();
+		//final String URI = "/resources/2014-2015.csv";
+		final long startTime = System.currentTimeMillis();
+		
+		final List<Earthquake> quakes = EarthquakeProcessor.loadEarthquakeDB(URI, false);
 
-	private static List<Earthquake> loadEarthquakeDB(final String address, final boolean isLocalFile) {
+		if (quakes.isEmpty()) {
+			System.out.println("No earthquakes found!");
+			return;
+		}
+
+		System.out.println("Loaded " + quakes.size() + " earthquakes");
+		final Coordinate supsi = new Coordinate(46.0234, 8.9172);
+
+		EarthquakeProcessor.findNearest(supsi, quakes.parallelStream());
+		EarthquakeProcessor.findFarest(supsi, quakes.parallelStream());
+		EarthquakeProcessor.findStrongest(quakes.parallelStream());
+		EarthquakeProcessor.findTopTenFromSupsi(supsi, quakes.parallelStream());
+		EarthquakeProcessor.findLatitude46(quakes.parallelStream());
+		EarthquakeProcessor.findLongitude8(quakes.parallelStream());
+		EarthquakeProcessor.groupByDepth(quakes.parallelStream());
+		EarthquakeProcessor.groupByMagnitude(quakes.parallelStream());
+
+		final long totalEndTime = System.currentTimeMillis();
+		System.out.println("Completed in " + ((totalEndTime - startTime)) + " ms");
+	}
+
+}
+
+class EarthquakeProcessor {
+	static List<Earthquake> loadEarthquakeDB(final String address, final boolean isLocalFile) {
 		final List<Earthquake> quakes = new ArrayList<>();
 
 		final Reader reader;
@@ -178,44 +209,14 @@ public class S11Esercizio1 {
 		return quakes;
 	}
 
-	public static void main(final String[] args) {
-		final String URI = S11Esercizio1.class.getResource("/2014-2015.csv").toString();
-		//final String URI = "/resources/2014-2015.csv";
-		final long startTime = System.currentTimeMillis();
-		
-		final List<Earthquake> quakes = loadEarthquakeDB(URI, false);
-
-		if (quakes.isEmpty()) {
-			System.out.println("No earthquakes found!");
-			return;
-		}
-
-		System.out.println("Loaded " + quakes.size() + " earthquakes");
-		final Coordinate supsi = new Coordinate(46.0234, 8.9172);
-
-		findNearest(supsi, quakes);
-		findFarest(supsi, quakes);
-		findStrongest(quakes);
-		findTopTenFromSupsi(supsi, quakes);
-		findLatitude46(quakes);
-		findLongitude8(quakes);
-		groupByDepth(quakes);
-		groupByMagnitude(quakes);
-
-		final long totalEndTime = System.currentTimeMillis();
-		System.out.println("Completed in " + ((totalEndTime - startTime)) + " ms");
-	}
-
 	// computation time=129 ms (classic loop)
 	// computation time=188 ms (Parallel Stream)
 	// computation time=243 ms (Stream)
-	private static void findNearest(Coordinate supsi, List<Earthquake> quakes) {
+	static void findNearest(Coordinate supsi, Stream<Earthquake> quakeStream) {
 		final long computeTime = System.currentTimeMillis();
 		System.out.println("Searching for nearest earthquake ...");
 
-		Earthquake curNearestQuake = quakes
-				.parallelStream()
-				//.stream()
+		Earthquake curNearestQuake = quakeStream
 				.min(Comparator.comparingDouble(q -> q.getPosition().distance(supsi))).get();
 
 		double curNearestDistance = curNearestQuake.getPosition().distance(supsi);
@@ -227,13 +228,11 @@ public class S11Esercizio1 {
 
 	// computation time=86 ms (Parallel Stream)
 	// computation time=219 ms (Stream)
-	private static void findFarest(Coordinate supsi, List<Earthquake> quakes) {
+	static void findFarest(Coordinate supsi, Stream<Earthquake> quakeStream) {
 		final long computeTime = System.currentTimeMillis();
 		System.out.println("Searching for farest earthquake ...");
 
-		Earthquake curNearestQuake = quakes
-				.parallelStream()
-				//.stream()
+		Earthquake curNearestQuake = quakeStream
 				.max(Comparator.comparingDouble(q -> q.getPosition().distance(supsi))).get();
 
 		double curNearestDistance = curNearestQuake.getPosition().distance(supsi);
@@ -243,13 +242,11 @@ public class S11Esercizio1 {
 
 	// computation time=9 ms (Parallel Stream)
 	// computation time=12 ms (Stream)
-	private static void findStrongest(List<Earthquake> quakes) {
+	static void findStrongest(Stream<Earthquake> quakeStream) {
 		final long computeTime = System.currentTimeMillis();
 		System.out.println("Searching for strongest earthquake ...");
 
-		Earthquake result = quakes
-				.parallelStream()
-				//.stream()
+		Earthquake result = quakeStream
 				.max(Comparator.comparingDouble(Earthquake::getMagnitude)).get();
 
 		final long endTime = System.currentTimeMillis();
@@ -258,12 +255,11 @@ public class S11Esercizio1 {
 
 	//  computation time=505 ms (Stream)
 	//  computation time=269 ms (ParallelStream)
-	private static void findTopTenFromSupsi(Coordinate supsi, List<Earthquake> quakes) {
+	static void findTopTenFromSupsi(Coordinate supsi, Stream<Earthquake> quakeStream) {
 		final long computeTime = System.currentTimeMillis();
 		System.out.println("Searching top ten...");
 
-		List<Earthquake> topTen = quakes
-				.parallelStream()
+		List<Earthquake> topTen = quakeStream
 				.filter(q -> q.getPosition().distance(supsi) > 2000)
 				.filter(q -> q.getMagnitude() >= 4 && q.getMagnitude() <=6)
 				.sorted(Comparator.comparingDouble(q -> q.getPosition().distance(supsi)))
@@ -280,13 +276,11 @@ public class S11Esercizio1 {
 
 	// computation time=13 ms (Parallel Stream)
 	// computation time=15 ms (Stream)
-	private static void findLatitude46(List<Earthquake> quakes) {
+	static void findLatitude46(Stream<Earthquake> quakeStream) {
 		final long computeTime = System.currentTimeMillis();
 		System.out.println("Searching for latitude 6 ...");
 
-		long result = quakes
-				.parallelStream()
-				//.stream()
+		long result = quakeStream
 				.filter(q -> q.getPosition().getLat() < 47.0 && q.getPosition().getLat() >= 46.0)
 				.count();
 
@@ -296,13 +290,11 @@ public class S11Esercizio1 {
 
 	// computation time=10 ms (Parallel Stream)
 	// computation time=15 ms (Stream)
-	private static void findLongitude8(List<Earthquake> quakes) {
+	static void findLongitude8(Stream<Earthquake> quakeStream) {
 		final long computeTime = System.currentTimeMillis();
 		System.out.println("Searching for longitude 8...");
 
-		long result = quakes
-				.parallelStream()
-				//.stream()
+		long result = quakeStream
 				.filter(q -> q.getPosition().getLon() < 9.0 && q.getPosition().getLon() >= 8.0)
 				.count();
 
@@ -312,13 +304,11 @@ public class S11Esercizio1 {
 
 	// computation time=35 ms (Parallel Stream)
 	// computation time=37 ms (Stream)
-	private static void groupByDepth(List<Earthquake> quakes) {
+	static void groupByDepth(Stream<Earthquake> quakeStream) {
 		final long computeTime = System.currentTimeMillis();
 		System.out.println("grouping by depth...");
 
-		Map<Integer, List<Earthquake>> result = quakes
-				.parallelStream()
-				//.stream()
+		Map<Integer, List<Earthquake>> result = quakeStream
 				.collect(Collectors.groupingBy(q -> (int)(q.getDepth() / 100)));
 
 		final long endTime = System.currentTimeMillis();
@@ -332,12 +322,11 @@ public class S11Esercizio1 {
 
 	// computation time=78 ms (Parallel Stream)
 	// computation time=56 ms (Stream)
-	private static void groupByMagnitude(List<Earthquake> quakes) {
+	static void groupByMagnitude(Stream<Earthquake> quakeStream) {
 		final long computeTime = System.currentTimeMillis();
 		System.out.println("grouping by magnitude...");
 
-		Map<Integer, Long> result = quakes
-				.parallelStream()
+		Map<Integer, Long> result = quakeStream
 				.collect(Collectors.groupingByConcurrent(q -> (int)q.getMagnitude(), Collectors.counting()));
 //				.stream()
 //				.collect(Collectors.groupingBy(q -> (int)q.getMagnitude(), Collectors.counting()));
