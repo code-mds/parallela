@@ -141,14 +141,26 @@ public class S11Esercizio1 {
 		System.out.println("Loaded " + quakes.size() + " earthquakes");
 		final Coordinate supsi = new Coordinate(46.0234, 8.9172);
 
-		EarthquakeProcessor.findNearest(supsi, quakes.parallelStream());
-		EarthquakeProcessor.findFarest(supsi, quakes.parallelStream());
-		EarthquakeProcessor.findStrongest(quakes.parallelStream());
-		EarthquakeProcessor.findTopTenFromSupsi(supsi, quakes.parallelStream());
-		EarthquakeProcessor.findLatitude46(quakes.parallelStream());
-		EarthquakeProcessor.findLongitude8(quakes.parallelStream());
-		EarthquakeProcessor.groupByDepth(quakes.parallelStream());
-		EarthquakeProcessor.groupByMagnitude(quakes.parallelStream());
+		EarthquakeProcessor.findNearest(supsi, quakes.stream());
+		EarthquakeProcessor.findFarest(supsi, quakes.stream());
+		EarthquakeProcessor.findStrongest(quakes.stream());
+		EarthquakeProcessor.findTopTenFromSupsi(supsi, quakes.stream());
+		EarthquakeProcessor.findLatitude46(quakes.stream());
+		EarthquakeProcessor.findLongitude8(quakes.stream());
+		EarthquakeProcessor.groupByDepth(quakes.stream());
+		EarthquakeProcessor.groupByMagnitude(quakes.stream());
+
+//		EarthquakeProcessor.findNearest(supsi, quakes.parallelStream());
+//		EarthquakeProcessor.findFarest(supsi, quakes.parallelStream());
+//		EarthquakeProcessor.findStrongest(quakes.parallelStream());
+//		EarthquakeProcessor.findTopTenFromSupsi(supsi, quakes.parallelStream());
+//		EarthquakeProcessor.findLatitude46(quakes.parallelStream());
+//		EarthquakeProcessor.findLongitude8(quakes.parallelStream());
+//		EarthquakeProcessor.groupByDepth(quakes.parallelStream());
+//		EarthquakeProcessor.groupByMagnitude(quakes.parallelStream());
+
+//Stream: 			[5843, 6413] ms
+//Parallel Stream: 	[5661, 7284] ms
 
 		final long totalEndTime = System.currentTimeMillis();
 		System.out.println("Completed in " + ((totalEndTime - startTime)) + " ms");
@@ -327,9 +339,8 @@ class EarthquakeProcessor {
 		System.out.println("grouping by magnitude...");
 
 		Map<Integer, Long> result = quakeStream
-				.collect(Collectors.groupingByConcurrent(q -> (int)q.getMagnitude(), Collectors.counting()));
-//				.stream()
-//				.collect(Collectors.groupingBy(q -> (int)q.getMagnitude(), Collectors.counting()));
+//				.collect(Collectors.groupingByConcurrent(q -> (int)q.getMagnitude(), Collectors.counting()));
+				.collect(Collectors.groupingBy(q -> (int)q.getMagnitude(), Collectors.counting()));
 
 		final long endTime = System.currentTimeMillis();
 
