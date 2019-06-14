@@ -14,10 +14,8 @@ import java.net.URL;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 final class Coordinate {
 	private final double lat;
@@ -187,30 +185,94 @@ public class S11Esercizio1 {
 		final long startTime = System.currentTimeMillis();
 		
 		final List<Earthquake> quakes = loadEarthquakeDB(URI, false);
-		final long computeTime = System.currentTimeMillis();
 
 		if (quakes.isEmpty()) {
 			System.out.println("No earthquakes found!");
 			return;
 		}
-		System.out.println("Loaded " + quakes.size() + " earthquakes");
 
+		System.out.println("Loaded " + quakes.size() + " earthquakes");
 		final Coordinate supsi = new Coordinate(46.0234, 8.9172);
 
-		System.out.println("Searching for nearest earthquake ...");
-		Earthquake curNearestQuake = null;
-		double curNearestDistance = Double.MAX_VALUE;
-		for (final Earthquake quake : quakes) {
-			final double distance = quake.getPosition().distance(supsi);
-			if (curNearestDistance > distance) {
-				curNearestDistance = distance;
-				curNearestQuake = quake;
-			}
-		}
-		
-		final long endTime = System.currentTimeMillis();
-		System.out.println("Completed in " + ((endTime - startTime)) + " ms" + " (computation time=" + (endTime - computeTime) + " ms)");
-		// Results
-		System.out.println("Nearest  : " + curNearestQuake + " distance: " + curNearestDistance);
+		findNearest(supsi, quakes);
+		findFarest(supsi, quakes);
+		findStrongest(quakes);
+		findTopTenFromSupsi(supsi, quakes);
+
+		final long totalEndTime = System.currentTimeMillis();
+		System.out.println("Completed in " + ((totalEndTime - startTime)) + " ms");
 	}
+
+	// computation time=129 ms (classic loop)
+	// computation time=188 ms (Parallel Stream)
+	// computation time=243 ms (Stream)
+	private static void findNearest(Coordinate supsi, List<Earthquake> quakes) {
+		final long computeTime = System.currentTimeMillis();
+		System.out.println("Searching for nearest earthquake ...");
+
+		Earthquake curNearestQuake = quakes
+				.parallelStream()
+				//.stream()
+				.min(Comparator.comparingDouble(q -> q.getPosition().distance(supsi))).get();
+
+		double curNearestDistance = curNearestQuake.getPosition().distance(supsi);
+		//Nearest  : Optional[28.11.15 21:29 mag: 3.0 depth: 5.0km @ [45.79000, 9.79000] "2km N of Albino, Italy"] distance: 72.34566016141176
+
+		final long endTime = System.currentTimeMillis();
+		System.out.println("Nearest  : " + curNearestQuake + " distance: " + curNearestDistance + " (computation time=" + (endTime - computeTime) + " ms)");
+	}
+
+	// computation time=86 ms (Parallel Stream)
+	// computation time=219 ms (Stream)
+	private static void findFarest(Coordinate supsi, List<Earthquake> quakes) {
+		final long computeTime = System.currentTimeMillis();
+		System.out.println("Searching for farest earthquake ...");
+
+		Earthquake curNearestQuake = quakes
+				.parallelStream()
+				//.stream()
+				.max(Comparator.comparingDouble(q -> q.getPosition().distance(supsi))).get();
+
+		double curNearestDistance = curNearestQuake.getPosition().distance(supsi);
+		final long endTime = System.currentTimeMillis();
+		System.out.println("Farest  : " + curNearestQuake + " distance: " + curNearestDistance + " (computation time=" + (endTime - computeTime) + " ms)");
+	}
+
+	// computation time=9 ms (Parallel Stream)
+	// computation time=12 ms (Stream)
+	private static void findStrongest(List<Earthquake> quakes) {
+		final long computeTime = System.currentTimeMillis();
+		System.out.println("Searching for farest earthquake ...");
+
+		Earthquake result = quakes
+				.parallelStream()
+				//.stream()
+				.max(Comparator.comparingDouble(Earthquake::getMagnitude)).get();
+
+		final long endTime = System.currentTimeMillis();
+		System.out.println("Strongest  : " + result + " (computation time=" + (endTime - computeTime) + " ms)");
+	}
+
+	private static void findTopTenFromSupsi(Coordinate supsi, List<Earthquake> quakes) {
+		final long computeTime = System.currentTimeMillis();
+		System.out.println("Searching for farest earthquake ...");
+
+		List<Earthquake> topTen = quakes
+				.parallelStream()
+				.filter(q -> q.getPosition().distance(supsi) > 2000)
+				.filter(q -> q.getMagnitude() >= 4 && q.getMagnitude() <=6)
+				.sorted(Comparator.comparingDouble(q -> q.getPosition().distance(supsi)))
+				.limit(10)
+				.collect(Collectors.toList());
+
+		final long endTime = System.currentTimeMillis();
+		for (int i = 0; i < topTen.size(); i++) {
+			System.out.println(i + ") " + topTen.get(i) + " distance: " + topTen.get(i).getPosition().distance(supsi));
+		}
+
+		//  computation time=505 ms (Stream)
+		//  computation time=269 ms (ParallelStream)
+		System.out.println(" (computation time=" + (endTime - computeTime) + " ms)");
+	}
+
 }
